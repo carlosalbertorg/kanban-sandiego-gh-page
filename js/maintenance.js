@@ -169,13 +169,6 @@ function updateConnectionStatus(connected) {
 }
 
 function renderTable() {
-    const currentView = document.getElementById('viewMode')?.value || 'table';
-    
-    if (currentView === 'kanban') {
-        renderKanban();
-        return;
-    }
-    
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -292,12 +285,6 @@ function applyFilters() {
     const freqFilter = document.getElementById('filterFreq')?.value || '';
     const prioFilter = document.getElementById('filterPrio')?.value || '';
     const statusFilter = document.getElementById('filterStatus')?.value || '';
-    const currentView = document.getElementById('viewMode')?.value || 'table';
-    
-    if (currentView === 'kanban') {
-        renderKanban(); // Re-render kanban with filters
-        return;
-    }
     
     const rows = document.querySelectorAll('#tableBody tr');
     rows.forEach((row, index) => {
@@ -308,141 +295,6 @@ function applyFilters() {
         const matchStatus = !statusFilter || data.status === statusFilter;
         row.style.display = (matchFreq && matchPrio && matchStatus) ? '' : 'none';
     });
-}
-
-// Função para alternar entre visualizações
-function toggleView() {
-    const viewMode = document.getElementById('viewMode').value;
-    const tableView = document.getElementById('tableView');
-    const kanbanView = document.getElementById('kanbanView');
-    const statusFilterContainer = document.getElementById('statusFilterContainer');
-    
-    if (viewMode === 'kanban') {
-        tableView.style.display = 'none';
-        kanbanView.style.display = 'block';
-        statusFilterContainer.style.display = 'none'; // Hide status filter in kanban view
-        renderKanban();
-    } else {
-        tableView.style.display = 'block';
-        kanbanView.style.display = 'none';
-        statusFilterContainer.style.display = 'block';
-        renderTable();
-    }
-}
-
-// Função para renderizar o Kanban
-function renderKanban() {
-    const freqFilter = document.getElementById('filterFreq')?.value || '';
-    const prioFilter = document.getElementById('filterPrio')?.value || '';
-    
-    // Filtrar dados
-    const filteredData = maintenanceData.filter(item => {
-        const matchFreq = !freqFilter || item.freq === freqFilter;
-        const matchPrio = !prioFilter || item.prio === prioFilter;
-        return matchFreq && matchPrio;
-    });
-    
-    // Agrupar por status
-    const groupedData = {
-        'Pendente': filteredData.filter(item => item.status === 'Pendente'),
-        'Em andamento': filteredData.filter(item => item.status === 'Em andamento'),
-        'Concluído': filteredData.filter(item => item.status === 'Concluído')
-    };
-    
-    // Renderizar cada coluna
-    Object.keys(groupedData).forEach(status => {
-        const columnId = status.toLowerCase().replace(' ', '-');
-        const cardsContainer = document.getElementById(`${columnId}-cards`);
-        const countElement = document.getElementById(`${columnId}-count`);
-        
-        if (!cardsContainer || !countElement) return;
-        
-        cardsContainer.innerHTML = '';
-        countElement.textContent = groupedData[status].length;
-        
-        groupedData[status].forEach(item => {
-            const card = createKanbanCard(item);
-            cardsContainer.appendChild(card);
-        });
-    });
-    
-    updateStats();
-}
-
-// Função para criar um card do Kanban
-function createKanbanCard(item) {
-    const itemExecutions = executionHistory.filter(exec => exec.itemId === item.id);
-    const historyLastExecution = itemExecutions.length > 0 
-        ? itemExecutions.reduce((latest, exec) => exec.executionDate > latest ? exec.executionDate : latest, '')
-        : '';
-    
-    const displayLastExecution = item.lastExecution || historyLastExecution;
-    const displayNextExecution = item.nextExecution || calculateNextExecution(item.freq, historyLastExecution);
-    
-    // Determinar urgência baseada na próxima execução
-    const urgencyClass = getUrgencyClass(displayNextExecution);
-    
-    const card = document.createElement('div');
-    card.className = `kanban-card ${urgencyClass}`;
-    card.setAttribute('data-id', item.id);
-    
-    card.innerHTML = `
-        <div class="card-title">${item.item}</div>
-        
-        <div class="card-meta">
-            <span class="card-badge frequencia ${item.freq.toLowerCase()}">${item.freq}</span>
-            <span class="card-badge prioridade ${item.prio.toLowerCase()}">${item.prio}</span>
-        </div>
-        
-        <div class="card-info">
-            <strong>Responsável:</strong> ${item.resp || 'Não atribuído'}
-        </div>
-        
-        <div class="card-dates">
-            <div class="card-date">
-                <strong>Última:</strong><br>
-                ${displayLastExecution ? formatDate(displayLastExecution) : 'Nunca'}
-                ${isToday(displayLastExecution) ? '<br><span class="today-badge">HOJE</span>' : ''}
-            </div>
-            <div class="card-date">
-                <strong>Próxima:</strong><br>
-                ${displayNextExecution ? formatDate(displayNextExecution) : 'N/A'}
-            </div>
-        </div>
-        
-        ${item.obs ? `<div class="card-info"><strong>Obs:</strong> ${item.obs}</div>` : ''}
-        
-        ${checkPermission('canEdit') ? `
-            <select class="status-selector" onchange="updateStatus('${item.id}', this.value)">
-                <option value="Pendente" ${item.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                <option value="Em andamento" ${item.status === 'Em andamento' ? 'selected' : ''}>Em andamento</option>
-                <option value="Concluído" ${item.status === 'Concluído' ? 'selected' : ''}>Concluído</option>
-            </select>
-        ` : ''}
-        
-        <div class="card-actions">
-            <button class="btn btn-history" onclick="openExecutionModal('${item.id}', '${item.item.replace(/'/g, "\\'")}')" title="Registrar Execução">📅</button>
-            ${checkPermission('canEdit') ? `<button class="btn" onclick="editItem('${item.id}')">✏️</button>` : ''}
-            ${checkPermission('canDelete') ? `<button class="btn btn-danger" onclick="deleteItemFromUI('${item.id}')">🗑️</button>` : ''}
-        </div>
-    `;
-    
-    return card;
-}
-
-// Função para determinar a classe de urgência
-function getUrgencyClass(nextExecution) {
-    if (!nextExecution) return '';
-    
-    const today = new Date();
-    const nextDate = new Date(nextExecution);
-    const diffDays = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) return 'overdue'; // Atrasado
-    if (diffDays <= 2) return 'urgent'; // Urgente (2 dias ou menos)
-    if (diffDays <= 7) return 'due-soon'; // Vence em breve (7 dias ou menos)
-    
-    return '';
 }
 
 async function loadDailyHistory() {
