@@ -1,6 +1,6 @@
 // Configuração do Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyAuJqGE81FedUn6-LCHHFCTzQV2nELPiIU",
+    apiKey: "AIzaSyAuJqGE81FedUn6-LCHHFCTzQV2nELPiIU", //não tem problema ser pública pois está restrita as configurações de domínio permitidos 
     authDomain: "kanban-sandiego.firebaseapp.com",
     projectId: "kanban-sandiego",
     storageBucket: "kanban-sandiego.firebasestorage.app",
