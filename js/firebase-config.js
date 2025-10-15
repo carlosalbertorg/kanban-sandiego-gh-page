@@ -1,13 +1,12 @@
 // Configuração do Firebase
 const firebaseConfig = {
-    apiKey: "AIzaSyAPf7bQrWbO5g_YjU_rQbD4CZVI9VGrRAg", //não tem problema ser pública pois está restrita as configurações de domínio permitidos 
-    authDomain: "sandiego-cronograma.firebaseapp.com",
-    projectId: "sandiego-cronograma",
-    storageBucket: "sandiego-cronograma.firebasestorage.app",
-    messagingSenderId: "197734627891",
-    appId: "1:197734627891:web:1fb88bb71715b3d60b0146",
-    measurementId: "G-EWBB74TS37"
-};
+    apiKey: "AIzaSyAuJqGE81FedUn6-LCHHFCTzQV2nELPiIU",
+    authDomain: "kanban-sandiego.firebaseapp.com",
+    projectId: "kanban-sandiego",
+    storageBucket: "kanban-sandiego.firebasestorage.app",
+    messagingSenderId: "820768506933",
+    appId: "1:820768506933:web:4c09eceeb48e0b920add7c"
+  };
 
 // Inicialização do Firebase
 let app, db, auth;
