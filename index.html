@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema para controle de tarefas</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div id="loginContainer" class="login-container">
+        <div class="login-box">
+            <h1>🔐 Sistema para Controle de Tarefas</h1>
+            <p>Faça login para acessar o sistema</p>
+            
+            <form id="loginForm" onsubmit="login(event)">
+                <div class="form-group">
+                    <label for="loginEmail">Email:</label>
+                    <input type="email" id="loginEmail" required placeholder="seu@email.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Senha:</label>
+                    <input type="password" id="loginPassword" required placeholder="Sua senha">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn" style="width: 100%">Entrar</button>
+                </div>
+                
+                <div id="loginError" class="error-message" style="display: none;"></div>
+            </form>
+            
+            <div class="form-footer">
+                <p><small>Entre em contato com o administrador para criar uma conta</small></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer">
+        <div class="header">
+            <h1>📋 Sistema para Controle de Tarefas</h1>
+            <p>Gestão completa de manutenção preventiva e corretiva</p>
+            <div class="user-info">
+                <span class="user-email" id="userEmail"></span>
+                <span class="role-badge" id="userRole"></span>
+                <button class="btn-logout" id="userManagementBtn" style="display: none;" onclick="openUserManagement()">👥 Usuários</button>
+                <button class="btn-logout" onclick="logout()">Sair</button>
+            </div>
+            <div id="connectionStatus" class="status-indicator status-offline">
+                <span class="loading" id="loadingIndicator"></span>
+                Conectando ao banco de dados...
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('manutencao')">📋 Manutenção</div>
+            <div class="tab" onclick="switchTab('historico')">📅 Histórico Diário</div>
+            <div class="tab" onclick="switchTab('relatorios')">📊 Relatórios</div>
+        </div>
+        
+        <div id="manutencaoTab" class="tab-content active">
+            <div class="stats" id="stats">
+                <div class="stat-card">
+                    <h3 id="totalItems">0</h3>
+                    <p>Total de Itens</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalPendentes">0</h3>
+                    <p>Pendentes</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalAndamento">0</h3>
+                    <p>Em Andamento</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalConcluidos">0</h3>
+                    <p>Concluídos</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalHoje">0</h3>
+                    <p>Feitos Hoje</p>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div>
+                    <label>Visualização:</label>
+                    <select id="viewMode" onchange="toggleView()">
+                        <option value="table">📋 Tabela</option>
+                        <option value="kanban">📌 Kanban</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label>Filtrar por Frequência:</label>
+                    <select id="filterFreq" onchange="applyFilters()">
+                        <option value="">Todas</option>
+                        <option value="Diário">Diário</option>
+                        <option value="Semanal">Semanal</option>
+                        <option value="Mensal">Mensal</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label>Filtrar por Prioridade:</label>
+                    <select id="filterPrio" onchange="applyFilters()">
+                        <option value="">Todas</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Média">Média</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Baixa">Baixa</option>
+                    </select>
+                </div>
+                
+                <div id="statusFilterContainer">
+                    <label>Filtrar por Status:</label>
+                    <select id="filterStatus" onchange="applyFilters()">
+                        <option value="">Todos</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Em andamento">Em andamento</option>
+                        <option value="Concluído">Concluído</option>
+                    </select>
+                </div>
+                
+                <div style="margin-left: auto; display: flex; gap: 10px;">
+                    <button class="btn btn-add" onclick="openAddModal()" id="addButton">➕ Adicionar Item</button>
+                    <button class="btn btn-export" onclick="exportToCSV()">📥 Exportar CSV</button>
+                    <button class="btn" onclick="saveData()">💾 Salvar Backup</button>
+                </div>
+            </div>
+            
+            <!-- Visualização Tabela -->
+            <div id="tableView" class="table-container">
+                <table id="maintenanceTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 3%">#</th>
+                            <th style="width: 20%">Item / Área</th>
+                            <th style="width: 8%">Frequência</th>
+                            <th style="width: 8%">Prioridade</th>
+                            <th style="width: 10%">Status</th>
+                            <th style="width: 12%">Responsável</th>
+                            <th style="width: 10%">Última Revisão</th>
+                            <th style="width: 10%">Última Execução</th>
+                            <th style="width: 10%">Próxima Prevista</th>
+                            <th style="width: 9%">Observações</th>
+                            <th style="width: 10%">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Visualização Kanban -->
+            <div id="kanbanView" class="kanban-container" style="display: none;">
+                <div class="kanban-board">
+                    <div class="kanban-column" data-status="Pendente">
+                        <div class="kanban-header">
+                            <h3>📋 Pendente</h3>
+                            <span class="task-count" id="pendente-count">0</span>
+                        </div>
+                        <div class="kanban-cards" id="pendente-cards"></div>
+                    </div>
+                    
+                    <div class="kanban-column" data-status="Em andamento">
+                        <div class="kanban-header">
+                            <h3>⚡ Em Andamento</h3>
+                            <span class="task-count" id="em-andamento-count">0</span>
+                        </div>
+                        <div class="kanban-cards" id="em-andamento-cards"></div>
+                    </div>
+                    
+                    <div class="kanban-column" data-status="Concluído">
+                        <div class="kanban-header">
+                            <h3>✅ Concluído</h3>
+                            <span class="task-count" id="concluido-count">0</span>
+                        </div>
+                        <div class="kanban-cards" id="concluido-cards"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="historicoTab" class="tab-content">
+            <div class="controls">
+                <div>
+                    <label>Filtrar por Data:</label>
+                    <input type="date" id="filterDate" onchange="loadDailyHistory()">
+                </div>
+                
+                <div>
+                    <label>Filtrar por Item:</label>
+                    <select id="filterHistoryItem" onchange="loadDailyHistory()">
+                        <option value="">Todos os Itens</option>
+                    </select>
+                </div>
+                
+                <div style="margin-left: auto; display: flex; gap: 10px;">
+                    <button class="btn" onclick="loadDailyHistory()">🔄 Atualizar</button>
+                    <button class="btn btn-export" onclick="exportHistoryToCSV()">📥 Exportar Histórico</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <div id="dailyHistory">
+                    <div style="text-align: center; padding: 40px; color: #6c757d;">
+                        <div class="loading"></div>
+                        <p>Carregando histórico diário...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="relatoriosTab" class="tab-content">
+            <div class="controls">
+                <div>
+                    <label>Período:</label>
+                    <input type="date" id="reportStartDate">
+                    <span>até</span>
+                    <input type="date" id="reportEndDate">
+                </div>
+                
+                <div>
+                    <label>Tipo de Relatório:</label>
+                    <select id="reportType">
+                        <option value="execucoes">Execuções por Período</option>
+                        <option value="pendentes">Itens Pendentes</option>
+                        <option value="frequencia">Por Frequência</option>
+                    </select>
+                </div>
+                
+                <div style="margin-left: auto; display: flex; gap: 10px;">
+                    <button class="btn" onclick="generateReport()">📊 Gerar Relatório</button>
+                    <button class="btn btn-export" onclick="exportReport()">📥 Exportar PDF</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <div id="reportResults">
+                    <div style="text-align: center; padding: 40px; color: #6c757d;">
+                        <p>Selecione os filtros e clique em "Gerar Relatório"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para gerenciamento de usuários -->
+    <div id="userManagementModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 class="modal-title">👥 Gerenciamento de Usuários</h2>
+                <button class="close-btn" onclick="closeUserManagementModal()">&times;</button>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-add" onclick="openAddUserModal()">➕ Adicionar Usuário</button>
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Nome</th>
+                            <th>Função</th>
+                            <th>Status</th>
+                            <th>Data de Criação</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userManagementTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para adicionar/editar usuário -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="addUserModalTitle">Adicionar Usuário</h2>
+                <button class="close-btn" onclick="closeAddUserModal()">&times;</button>
+            </div>
+            <form id="addUserForm" onsubmit="saveUser(event)">
+                <input type="hidden" id="editUserId" value="">
+                <div class="form-group">
+                    <label for="addUserEmail">Email:</label>
+                    <input type="email" id="addUserEmail" required placeholder="novo@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="addUserName">Nome:</label>
+                    <input type="text" id="addUserName" required placeholder="Nome completo">
+                </div>
+                <div class="form-group">
+                    <label for="addUserRole">Função:</label>
+                    <select id="addUserRole" required>
+                        <option value="user">Usuário</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <div class="form-group" id="passwordField">
+                    <label for="addUserPassword">Senha:</label>
+                    <input type="password" id="addUserPassword" required placeholder="Senha inicial">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-danger" onclick="closeAddUserModal()">Cancelar</button>
+                    <button type="submit" class="btn">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para itens de manutenção -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Adicionar Item</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="itemForm" onsubmit="saveItem(event)">
+                <input type="hidden" id="editIndex" value="">
+                <div class="form-group">
+                    <label for="itemName">Item / Área:</label>
+                    <input type="text" id="itemName" required>
+                </div>
+                <div class="form-group">
+                    <label for="itemFreq">Frequência:</label>
+                    <select id="itemFreq" required>
+                        <option value="">Selecione</option>
+                        <option value="Diário">Diário</option>
+                        <option value="Semanal">Semanal</option>
+                        <option value="Mensal">Mensal</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="itemPrio">Prioridade:</label>
+                    <select id="itemPrio" required>
+                        <option value="">Selecione</option>
+                        <option value="Alta">Alta</option>
+                        <option value="Média">Média</option>
+                        <option value="Normal">Normal</option>
+                        <option value="Baixa">Baixa</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="itemStatus">Status:</label>
+                    <select id="itemStatus" required>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Em andamento">Em andamento</option>
+                        <option value="Concluído">Concluído</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="itemResp">Responsável:</label>
+                    <input type="text" id="itemResp">
+                </div>
+                <div class="form-group">
+                    <label for="itemData">Última Revisão:</label>
+                    <input type="date" id="itemData">
+                </div>
+                <div class="form-group">
+                    <label for="itemLastExecution">Última Execução:</label>
+                    <input type="date" id="itemLastExecution">
+                </div>
+                <div class="form-group">
+                    <label for="itemNextExecution">Próxima Prevista:</label>
+                    <input type="date" id="itemNextExecution">
+                </div>
+                <div class="form-group">
+                    <label for="itemObs">Observações:</label>
+                    <textarea id="itemObs"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-danger" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="executionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Registrar Execução</h2>
+                <button class="close-btn" onclick="closeExecutionModal()">&times;</button>
+            </div>
+            <form id="executionForm" onsubmit="saveExecution(event)">
+                <input type="hidden" id="executionItemId" value="">
+                <input type="hidden" id="executionItemName" value="">
+                
+                <div class="form-group">
+                    <label>Item:</label>
+                    <input type="text" id="displayItemName" readonly style="background: #f8f9fa;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="executionDate">Data da Execução:</label>
+                    <input type="date" id="executionDate" required value="">
+                </div>
+                
+                <div class="form-group">
+                    <label for="executionResponsavel">Executado por:</label>
+                    <input type="text" id="executionResponsavel" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="executionObservacoes">Observações da Execução:</label>
+                    <textarea id="executionObservacoes" placeholder="Descreva o que foi feito..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-danger" onclick="closeExecutionModal()">Cancelar</button>
+                    <button type="submit" class="btn">Registrar Execução</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Carregar os scripts JavaScript -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/user-management.js"></script>
+    <script src="js/maintenance.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
