@@ -11,9 +11,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 </head>
 <body>
-    <div id="loginContainer" class="login-container">
+    <!-- Trecho dentro do <body>, loginContainer (logo no login) -->
+    <div id="loginContainer" class="login-container" aria-labelledby="loginTitle">
         <div class="login-box">
-            <h1>🔐 Sistema para Controle de Tarefas</h1>
+            <img src="src/logo.png" alt="San Diego Home Club" class="brand-logo" style="margin-bottom: 16px;">
+            <h1 id="loginTitle">🔐 Sistema para Controle de Tarefas</h1>
             <p>Faça login para acessar o sistema</p>
             
             <form id="loginForm" onsubmit="login(event)">
@@ -40,52 +42,58 @@
         </div>
     </div>
 
+    <!-- Header com logo, botão de alto contraste e melhorias de acessibilidade -->
     <div class="container" id="mainContainer">
         <div class="header">
-            <h1>📋 Sistema para Controle de Tarefas</h1>
-            <p>Gestão completa de manutenção preventiva e corretiva</p>
-            <div class="user-info">
-                <span class="user-email" id="userEmail"></span>
-                <span class="role-badge" id="userRole"></span>
-                <button class="btn-logout" id="userManagementBtn" style="display: none;" onclick="openUserManagement()">👥 Usuários</button>
-                <button class="btn-logout" onclick="logout()">Sair</button>
+            <img src="src/logo.png" alt="San Diego Home Club" class="brand-logo">
+            <div class="brand-title">
+                <h1>📋 Sistema para Controle de Tarefas</h1>
+                <p>Gestão completa de manutenção preventiva e corretiva</p>
             </div>
-            <div id="connectionStatus" class="status-indicator status-offline">
-                <span class="loading" id="loadingIndicator"></span>
-                Conectando ao banco de dados...
+        </div>
+        <div class="user-info">
+            <span class="user-email" id="userEmail"></span>
+            <span class="role-badge" id="userRole"></span>
+            <button class="btn-logout" id="userManagementBtn" style="display: none;" onclick="openUserManagement()">👥 Usuários</button>
+            <button class="btn-logout" onclick="logout()">Sair</button>
+        </div>
+        <div id="connectionStatus" class="status-indicator status-offline">
+            <span class="loading" id="loadingIndicator"></span>
+            Conectando ao banco de dados...
+        </div>
+    </div>
+    
+    <div class="tabs" role="tablist" aria-label="Navegação de seções">
+        <div class="tab active" role="tab" tabindex="0" aria-selected="true" onclick="switchTab('manutencao')">📋 Manutenção</div>
+        <div class="tab" role="tab" tabindex="0" aria-selected="false" onclick="switchTab('historico')">📅 Histórico Diário</div>
+        <div class="tab" role="tab" tabindex="0" aria-selected="false" onclick="switchTab('relatorios')">📊 Relatórios</div>
+    </div>
+    
+    <div id="manutencaoTab" class="tab-content active">
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <h3 id="totalItems">0</h3>
+                <p>Total de Itens</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalPendentes">0</h3>
+                <p>Pendentes</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalAndamento">0</h3>
+                <p>Em Andamento</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalConcluidos">0</h3>
+                <p>Concluídos</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalHoje">0</h3>
+                <p>Feitos Hoje</p>
             </div>
         </div>
         
-        <div class="tabs">
-            <div class="tab active" onclick="switchTab('manutencao')">📋 Manutenção</div>
-            <div class="tab" onclick="switchTab('historico')">📅 Histórico Diário</div>
-            <div class="tab" onclick="switchTab('relatorios')">📊 Relatórios</div>
-        </div>
-        
-        <div id="manutencaoTab" class="tab-content active">
-            <div class="stats" id="stats">
-                <div class="stat-card">
-                    <h3 id="totalItems">0</h3>
-                    <p>Total de Itens</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="totalPendentes">0</h3>
-                    <p>Pendentes</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="totalAndamento">0</h3>
-                    <p>Em Andamento</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="totalConcluidos">0</h3>
-                    <p>Concluídos</p>
-                </div>
-                <div class="stat-card">
-                    <h3 id="totalHoje">0</h3>
-                    <p>Feitos Hoje</p>
-                </div>
-            </div>
-            
+        <div class="controls">
             <div class="controls">
                 <div>
                     <label>Visualização:</label>
@@ -132,7 +140,9 @@
                     <button class="btn" onclick="saveData()">💾 Salvar Backup</button>
                 </div>
             </div>
-            
+        </div>
+        
+        <div class="table-container">
             <!-- Visualização Tabela -->
             <div id="tableView" class="table-container">
                 <table id="maintenanceTable">
@@ -185,69 +195,70 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <div id="historicoTab" class="tab-content">
-            <div class="controls">
-                <div>
-                    <label>Filtrar por Data:</label>
-                    <input type="date" id="filterDate" onchange="loadDailyHistory()">
-                </div>
-                
-                <div>
-                    <label>Filtrar por Item:</label>
-                    <select id="filterHistoryItem" onchange="loadDailyHistory()">
-                        <option value="">Todos os Itens</option>
-                    </select>
-                </div>
-                
-                <div style="margin-left: auto; display: flex; gap: 10px;">
-                    <button class="btn" onclick="loadDailyHistory()">🔄 Atualizar</button>
-                    <button class="btn btn-export" onclick="exportHistoryToCSV()">📥 Exportar Histórico</button>
-                </div>
+    <div id="historicoTab" class="tab-content">
+        <div class="controls">
+            <div>
+                <label>Filtrar por Data:</label>
+                <input type="date" id="filterDate" onchange="loadDailyHistory()">
             </div>
             
-            <div class="table-container">
-                <div id="dailyHistory">
-                    <div style="text-align: center; padding: 40px; color: #6c757d;">
-                        <div class="loading"></div>
-                        <p>Carregando histórico diário...</p>
-                    </div>
+            <div>
+                <label>Filtrar por Item:</label>
+                <select id="filterHistoryItem" onchange="loadDailyHistory()">
+                    <option value="">Todos os Itens</option>
+                </select>
+            </div>
+            
+            <div style="margin-left: auto; display: flex; gap: 10px;">
+                <button class="btn" onclick="loadDailyHistory()">🔄 Atualizar</button>
+                <button class="btn btn-export" onclick="exportHistoryToCSV()">📥 Exportar Histórico</button>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <div id="dailyHistory">
+                <div style="text-align: center; padding: 40px; color: #6c757d;">
+                    <div class="loading"></div>
+                    <p>Carregando histórico diário...</p>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div id="relatoriosTab" class="tab-content">
-            <div class="controls">
-                <div>
-                    <label>Período:</label>
-                    <input type="date" id="reportStartDate">
-                    <span>até</span>
-                    <input type="date" id="reportEndDate">
-                </div>
-                
-                <div>
-                    <label>Tipo de Relatório:</label>
-                    <select id="reportType">
-                        <option value="execucoes">Execuções por Período</option>
-                        <option value="pendentes">Itens Pendentes</option>
-                        <option value="frequencia">Por Frequência</option>
-                    </select>
-                </div>
-                
-                <div style="margin-left: auto; display: flex; gap: 10px;">
-                    <button class="btn" onclick="generateReport()">📊 Gerar Relatório</button>
-                    <button class="btn btn-export" onclick="exportReport()">📥 Exportar PDF</button>
-                </div>
+    <div id="relatoriosTab" class="tab-content">
+        <div class="controls">
+            <div>
+                <label>Período:</label>
+                <input type="date" id="reportStartDate">
+                <span>até</span>
+                <input type="date" id="reportEndDate">
             </div>
             
-            <div class="table-container">
-                <div id="reportResults">
-                    <div style="text-align: center; padding: 40px; color: #6c757d;">
-                        <p>Selecione os filtros e clique em "Gerar Relatório"</p>
-                    </div>
+            <div>
+                <label>Tipo de Relatório:</label>
+                <select id="reportType">
+                    <option value="execucoes">Execuções por Período</option>
+                    <option value="pendentes">Itens Pendentes</option>
+                    <option value="frequencia">Por Frequência</option>
+                </select>
+            </div>
+            
+            <div style="margin-left: auto; display: flex; gap: 10px;">
+                <button class="btn" onclick="generateReport()">📊 Gerar Relatório</button>
+                <button class="btn btn-export" onclick="exportReport()">📥 Exportar PDF</button>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <div id="reportResults">
+                <div style="text-align: center; padding: 40px; color: #6c757d;">
+                    <p>Selecione os filtros e clique em "Gerar Relatório"</p>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Modal para gerenciamento de usuários -->
