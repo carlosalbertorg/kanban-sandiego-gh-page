@@ -119,48 +119,13 @@
                 </div>
                 
                 <div style="margin-left: auto; display: flex; gap: 10px;">
-                    <button class="btn btn-toggle" onclick="toggleView()" id="toggleViewBtn">📊 Ver Tabela</button>
                     <button class="btn btn-add" onclick="openAddModal()" id="addButton">➕ Adicionar Item</button>
                     <button class="btn btn-export" onclick="exportToCSV()">📥 Exportar CSV</button>
                     <button class="btn" onclick="saveData()">💾 Salvar Backup</button>
                 </div>
             </div>
             
-            <!-- Kanban Board -->
-            <div class="kanban-board" id="kanbanBoard">
-                <div class="kanban-column" data-status="Pendente">
-                    <div class="column-header">
-                        <h3>📋 Pendente</h3>
-                        <span class="task-count" id="pendingCount">0</span>
-                    </div>
-                    <div class="column-content" id="pendingColumn" ondrop="drop(event)" ondragover="allowDrop(event)">
-                        <!-- Cards serão inseridos aqui -->
-                    </div>
-                </div>
-                
-                <div class="kanban-column" data-status="Em andamento">
-                    <div class="column-header">
-                        <h3>🔄 Em Andamento</h3>
-                        <span class="task-count" id="inProgressCount">0</span>
-                    </div>
-                    <div class="column-content" id="inProgressColumn" ondrop="drop(event)" ondragover="allowDrop(event)">
-                        <!-- Cards serão inseridos aqui -->
-                    </div>
-                </div>
-                
-                <div class="kanban-column" data-status="Concluído">
-                    <div class="column-header">
-                        <h3>✅ Concluído</h3>
-                        <span class="task-count" id="completedCount">0</span>
-                    </div>
-                    <div class="column-content" id="completedColumn" ondrop="drop(event)" ondragover="allowDrop(event)">
-                        <!-- Cards serão inseridos aqui -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tabela oculta para modo de visualização alternativo -->
-            <div class="table-container" id="tableView" style="display: none;">
+            <div class="table-container">
                 <table id="maintenanceTable">
                     <thead>
                         <tr>

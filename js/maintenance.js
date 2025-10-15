@@ -3,7 +3,6 @@ let maintenanceData = [];
 let executionHistory = [];
 let unsubscribe = null;
 let unsubscribeHistory = null;
-let isKanbanView = true; // Controla se está na visualização Kanban ou tabela
 
 const initialMaintenanceData = [
     {item: "🔒 Câmeras / Cerca elétrica (gravação e funcionamento)", freq: "Diário", prio: "Alta", status: "Pendente", resp: "", data: "", lastExecution: "", nextExecution: "", obs: ""},
@@ -170,122 +169,6 @@ function updateConnectionStatus(connected) {
 }
 
 function renderTable() {
-    if (isKanbanView) {
-        renderKanbanBoard();
-    } else {
-        renderTableView();
-    }
-    updateStats();
-}
-
-function renderKanbanBoard() {
-    const pendingColumn = document.getElementById('pendingColumn');
-    const inProgressColumn = document.getElementById('inProgressColumn');
-    const completedColumn = document.getElementById('completedColumn');
-    
-    // Limpar colunas
-    pendingColumn.innerHTML = '';
-    inProgressColumn.innerHTML = '';
-    completedColumn.innerHTML = '';
-    
-    // Filtrar dados
-    const filteredData = maintenanceData.filter(item => {
-        const freqFilter = document.getElementById('filterFreq').value;
-        const prioFilter = document.getElementById('filterPrio').value;
-        const statusFilter = document.getElementById('filterStatus').value;
-        
-        return (!freqFilter || item.freq === freqFilter) &&
-               (!prioFilter || item.prio === prioFilter) &&
-               (!statusFilter || item.status === statusFilter);
-    });
-    
-    // Separar por status e renderizar cards
-    filteredData.forEach(item => {
-        const card = createKanbanCard(item);
-        
-        switch(item.status) {
-            case 'Pendente':
-                pendingColumn.appendChild(card);
-                break;
-            case 'Em andamento':
-                inProgressColumn.appendChild(card);
-                break;
-            case 'Concluído':
-                completedColumn.appendChild(card);
-                break;
-        }
-    });
-    
-    // Atualizar contadores
-    updateColumnCounts();
-}
-
-function createKanbanCard(item) {
-    const card = document.createElement('div');
-    card.className = `kanban-card priority-${item.prio.toLowerCase()}`;
-    card.draggable = true;
-    card.dataset.itemId = item.id;
-    
-    // Eventos de drag and drop
-    card.addEventListener('dragstart', handleDragStart);
-    card.addEventListener('dragend', handleDragEnd);
-    
-    const itemExecutions = executionHistory.filter(exec => exec.itemId === item.id);
-    const historyLastExecution = itemExecutions.length > 0 
-        ? itemExecutions.reduce((latest, exec) => exec.executionDate > latest ? exec.executionDate : latest, '')
-        : '';
-    const historyNextExecution = calculateNextExecution(item.freq, historyLastExecution);
-    
-    const displayLastExecution = item.lastExecution || historyLastExecution;
-    const displayNextExecution = item.nextExecution || historyNextExecution;
-    const isOverdue = displayNextExecution && new Date(displayNextExecution) < new Date();
-    
-    card.innerHTML = `
-        <div class="card-header">
-            <div class="card-title">${item.item}</div>
-            <div class="card-actions">
-                ${checkPermission('canEdit') ? `<button class="card-action-btn" onclick="editItem('${item.id}')" title="Editar">✏️</button>` : ''}
-                <button class="card-action-btn" onclick="openExecutionModal('${item.id}', '${item.item.replace(/'/g, "\\'")}'))" title="Executar">📅</button>
-                ${checkPermission('canDelete') ? `<button class="card-action-btn" onclick="deleteItemFromUI('${item.id}')" title="Excluir">🗑️</button>` : ''}
-            </div>
-        </div>
-        
-        <div class="card-meta">
-            <span class="card-badge priority-${item.prio.toLowerCase()}">
-                ${item.prio}
-            </span>
-            <span class="card-badge frequency-badge">
-                ${item.freq}
-            </span>
-        </div>
-        
-        <div class="card-info">
-            ${item.resp ? `<div class="card-responsible">👤 ${item.resp}</div>` : ''}
-            ${item.obs ? `<div style="margin-top: 5px;">📝 ${item.obs}</div>` : ''}
-        </div>
-        
-        <div class="card-dates">
-            ${displayLastExecution ? `
-                <div class="card-date">
-                    <span class="card-date-label">Última:</span>
-                    <span class="card-date-value">${formatDate(displayLastExecution)}</span>
-                    ${isToday(displayLastExecution) ? '<span class="today-badge">HOJE</span>' : ''}
-                    ${isRecent(displayLastExecution) ? '<span class="recent-badge">RECENTE</span>' : ''}
-                </div>
-            ` : ''}
-            ${displayNextExecution ? `
-                <div class="card-date">
-                    <span class="card-date-label">Próxima:</span>
-                    <span class="card-date-value ${isOverdue ? 'text-danger' : ''}">${formatDate(displayNextExecution)}</span>
-                </div>
-            ` : ''}
-        </div>
-    `;
-    
-    return card;
-}
-
-function renderTableView() {
     const tbody = document.getElementById('tableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -331,81 +214,7 @@ function renderTableView() {
         `;
         tbody.appendChild(tr);
     });
-}
-
-function updateColumnCounts() {
-    const pendingCount = document.querySelectorAll('#pendingColumn .kanban-card').length;
-    const inProgressCount = document.querySelectorAll('#inProgressColumn .kanban-card').length;
-    const completedCount = document.querySelectorAll('#completedColumn .kanban-card').length;
-    
-    document.getElementById('pendingCount').textContent = pendingCount;
-    document.getElementById('inProgressCount').textContent = inProgressCount;
-    document.getElementById('completedCount').textContent = completedCount;
-}
-
-// Funções de Drag and Drop
-let draggedElement = null;
-
-function handleDragStart(e) {
-    draggedElement = this;
-    this.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/html', this.outerHTML);
-}
-
-function handleDragEnd(e) {
-    this.classList.remove('dragging');
-    draggedElement = null;
-}
-
-function allowDrop(e) {
-    e.preventDefault();
-    e.currentTarget.classList.add('drag-over');
-}
-
-function drop(e) {
-    e.preventDefault();
-    e.currentTarget.classList.remove('drag-over');
-    
-    if (draggedElement) {
-        const column = e.currentTarget;
-        const newStatus = column.parentElement.dataset.status;
-        const itemId = draggedElement.dataset.itemId;
-        
-        // Atualizar status no banco de dados
-        updateStatus(itemId, newStatus);
-        
-        // Mover o elemento visualmente
-        column.appendChild(draggedElement);
-        updateColumnCounts();
-    }
-}
-
-// Remover evento de drag over quando sair da área
-document.addEventListener('dragleave', function(e) {
-    if (e.target.classList.contains('column-content')) {
-        e.target.classList.remove('drag-over');
-    }
-});
-
-// Função para alternar entre visualizações
-function toggleView() {
-    isKanbanView = !isKanbanView;
-    const kanbanBoard = document.getElementById('kanbanBoard');
-    const tableView = document.getElementById('tableView');
-    const toggleBtn = document.getElementById('toggleViewBtn');
-    
-    if (isKanbanView) {
-        kanbanBoard.style.display = 'flex';
-        tableView.style.display = 'none';
-        toggleBtn.innerHTML = '📊 Ver Tabela';
-    } else {
-        kanbanBoard.style.display = 'none';
-        tableView.style.display = 'block';
-        toggleBtn.innerHTML = '📋 Ver Kanban';
-    }
-    
-    renderTable();
+    updateStats();
 }
 
 function calculateNextExecution(frequency, lastExecution) {
