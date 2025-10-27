@@ -1,6 +1,6 @@
 // Gerenciamento de usuários
-let users = [];
-let unsubscribeUsers = null;
+var users = window.users ?? [];
+var unsubscribeUsers = window.unsubscribeUsers ?? null;
 
 function openUserManagement() {
     if (!checkPermission('canManageUsers')) {
@@ -207,12 +207,15 @@ async function updateUserRole(userEmail, newRole) {
 }
 
 function listenToUsers() {
-    unsubscribeUsers = db.collection('users').onSnapshot((snapshot) => {
+    unsubscribeUsers = db.collection('users').onSnapshot(async (snapshot) => {
         users = [];
         snapshot.forEach((doc) => {
             users.push({ id: doc.id, ...doc.data() });
         });
+        // Garanta que a referência global seja atualizada
+        window.users = users;
     }, (error) => {
         console.error('Erro ao escutar usuários:', error);
+        window.unsubscribeUsers = unsubscribeUsers;
     });
 }

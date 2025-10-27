@@ -1,25 +1,30 @@
 // Configuração do Firebase
-const firebaseConfig = {
-    apiKey: "AIzaSyAuJqGE81FedUn6-LCHHFCTzQV2nELPiIU", //não tem problema ser pública pois está restrita as configurações de domínio permitidos 
+window.firebaseConfig = window.firebaseConfig || {
+    apiKey: "AIzaSyAuJqGE81FedUn6-LCHHFCTzQV2nELPiIU",
     authDomain: "kanban-sandiego.firebaseapp.com",
     projectId: "kanban-sandiego",
     storageBucket: "kanban-sandiego.firebasestorage.app",
     messagingSenderId: "820768506933",
     appId: "1:820768506933:web:4c09eceeb48e0b920add7c"
-  };
+};
 
 // Inicialização do Firebase
 let app, db, auth;
 
 try {
-    if (!firebase.apps.length) {
-        app = firebase.initializeApp(firebaseConfig);
+    // Evita re-inicialização do Firebase e redeclarações globais
+    if (!window.app) {
+        if (!firebase.apps.length) {
+            window.app = firebase.initializeApp(window.firebaseConfig);
+        } else {
+            window.app = firebase.app();
+        }
+        window.db = firebase.firestore();
+        window.auth = firebase.auth();
+        console.log('Firebase inicializado com sucesso!');
     } else {
-        app = firebase.app();
+        console.log('Firebase já inicializado.');
     }
-    db = firebase.firestore();
-    auth = firebase.auth();
-    console.log('Firebase inicializado com sucesso!');
 } catch (error) {
     console.error('Erro ao inicializar Firebase:', error);
 }

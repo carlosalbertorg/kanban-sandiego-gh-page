@@ -42,8 +42,8 @@
 
     <div class="container" id="mainContainer">
         <div class="header">
-            <h1>📋 Sistema para Controle de Tarefas</h1>
-            <p>Gestão completa de manutenção preventiva e corretiva</p>
+            <h1>🚀 Sistema de Gerenciamento de Projetos</h1>
+            <p>Gestão completa de projetos, tarefas e equipes</p>
             <div class="user-info">
                 <span class="user-email" id="userEmail"></span>
                 <span class="role-badge" id="userRole"></span>
@@ -57,156 +57,247 @@
         </div>
         
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('manutencao')">📋 Manutenção</div>
-            <div class="tab" onclick="switchTab('historico')">📅 Histórico Diário</div>
-            <div class="tab" onclick="switchTab('relatorios')">📊 Relatórios</div>
+            <div class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</div>
+            <div class="tab" onclick="switchTab('projetos')">📁 Projetos</div>
+            <div class="tab" onclick="switchTab('tarefas')">✅ Tarefas</div>
+            <div class="tab" onclick="switchTab('kanban')">📋 Kanban</div>
+            <div class="tab" onclick="switchTab('gantt')">📈 Gantt</div>
+            <div class="tab" onclick="switchTab('tempo')">⏱️ Tempo</div>
         </div>
         
-        <div id="manutencaoTab" class="tab-content active">
-            <div class="stats" id="stats">
-                <div class="stat-card">
-                    <h3 id="totalItems">0</h3>
-                    <p>Total de Itens</p>
+        <!-- Dashboard Tab -->
+        <div id="dashboardTab" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <h3>📊 Visão Geral</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-number" id="totalProjetos">0</span>
+                            <span class="stat-label">Projetos Ativos</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="totalTarefas">0</span>
+                            <span class="stat-label">Tarefas</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="tarefasPendentes">0</span>
+                            <span class="stat-label">Pendentes</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="tarefasConcluidas">0</span>
+                            <span class="stat-label">Concluídas</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3 id="totalPendentes">0</h3>
-                    <p>Pendentes</p>
+                
+                <div class="dashboard-card">
+                    <h3>⏰ Prazos Próximos</h3>
+                    <div id="proximosPrazos" class="prazos-list">
+                        <!-- Tarefas com prazos próximos serão carregadas aqui -->
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3 id="totalAndamento">0</h3>
-                    <p>Em Andamento</p>
+                
+                <div class="dashboard-card">
+                    <h3>👥 Equipe</h3>
+                    <div id="equipeStatus" class="equipe-grid">
+                        <!-- Status da equipe será carregado aqui -->
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3 id="totalConcluidos">0</h3>
-                    <p>Concluídos</p>
+                
+                <div class="dashboard-card">
+                    <h3>📈 Progresso dos Projetos</h3>
+                    <div id="progressoProjetos" class="progresso-list">
+                        <!-- Progresso dos projetos será carregado aqui -->
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3 id="totalHoje">0</h3>
-                    <p>Feitos Hoje</p>
+            </div>
+        </div>
+
+        <!-- Projetos Tab -->
+        <div id="projetosTab" class="tab-content">
+            <div class="section-header">
+                <h2>📁 Gerenciamento de Projetos</h2>
+                <button class="btn btn-primary" onclick="openProjectModal()">➕ Novo Projeto</button>
+            </div>
+            
+            <div class="projects-grid" id="projectsGrid">
+                <!-- Projetos serão carregados aqui -->
+            </div>
+        </div>
+
+        <!-- Tarefas Tab -->
+        <div id="tarefasTab" class="tab-content">
+            <div class="section-header">
+                <h2>✅ Gerenciamento de Tarefas</h2>
+                <div class="task-controls">
+                    <select id="filterProject" onchange="filterTasks()">
+                        <option value="">Todos os Projetos</option>
+                    </select>
+                    <select id="filterAssignee" onchange="filterTasks()">
+                        <option value="">Todos os Responsáveis</option>
+                    </select>
+                    <select id="filterStatus" onchange="filterTasks()">
+                        <option value="">Todos os Status</option>
+                        <option value="todo">A Fazer</option>
+                        <option value="in-progress">Em Progresso</option>
+                        <option value="review">Em Revisão</option>
+                        <option value="done">Concluído</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="openTaskModal()">➕ Nova Tarefa</button>
                 </div>
             </div>
             
-            <div class="controls">
-                <div>
-                    <label>Filtrar por Frequência:</label>
-                    <select id="filterFreq" onchange="applyFilters()">
-                        <option value="">Todas</option>
-                        <option value="Diário">Diário</option>
-                        <option value="Semanal">Semanal</option>
-                        <option value="Mensal">Mensal</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label>Filtrar por Prioridade:</label>
-                    <select id="filterPrio" onchange="applyFilters()">
-                        <option value="">Todas</option>
-                        <option value="Alta">Alta</option>
-                        <option value="Média">Média</option>
-                        <option value="Normal">Normal</option>
-                        <option value="Baixa">Baixa</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label>Filtrar por Status:</label>
-                    <select id="filterStatus" onchange="applyFilters()">
-                        <option value="">Todos</option>
-                        <option value="Pendente">Pendente</option>
-                        <option value="Em andamento">Em andamento</option>
-                        <option value="Concluído">Concluído</option>
-                    </select>
-                </div>
-                
-                <div style="margin-left: auto; display: flex; gap: 10px;">
-                    <button class="btn btn-add" onclick="openAddModal()" id="addButton">➕ Adicionar Item</button>
-                    <button class="btn btn-export" onclick="exportToCSV()">📥 Exportar CSV</button>
-                    <button class="btn" onclick="saveData()">💾 Salvar Backup</button>
-                </div>
-            </div>
-            
-            <div class="table-container">
-                <table id="maintenanceTable">
+            <div class="tasks-table-container">
+                <table class="tasks-table" id="tasksTable">
                     <thead>
                         <tr>
-                            <th style="width: 3%">#</th>
-                            <th style="width: 20%">Item / Área</th>
-                            <th style="width: 8%">Frequência</th>
-                            <th style="width: 8%">Prioridade</th>
-                            <th style="width: 10%">Status</th>
-                            <th style="width: 12%">Responsável</th>
-                            <th style="width: 10%">Última Revisão</th>
-                            <th style="width: 10%">Última Execução</th>
-                            <th style="width: 10%">Próxima Prevista</th>
-                            <th style="width: 9%">Observações</th>
-                            <th style="width: 10%">Ações</th>
+                            <th>Tarefa</th>
+                            <th>Projeto</th>
+                            <th>Responsável</th>
+                            <th>Status</th>
+                            <th>Prioridade</th>
+                            <th>Prazo</th>
+                            <th>Progresso</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBody">
+                    <tbody id="tasksTableBody">
+                        <!-- Tarefas serão carregadas aqui -->
                     </tbody>
                 </table>
             </div>
         </div>
-
-        <div id="historicoTab" class="tab-content">
-            <div class="controls">
-                <div>
-                    <label>Filtrar por Data:</label>
-                    <input type="date" id="filterDate" onchange="loadDailyHistory()">
-                </div>
-                
-                <div>
-                    <label>Filtrar por Item:</label>
-                    <select id="filterHistoryItem" onchange="loadDailyHistory()">
-                        <option value="">Todos os Itens</option>
+        <!-- Kanban Tab -->
+        <div id="kanbanTab" class="tab-content">
+            <div class="section-header">
+                <h2>📋 Quadro Kanban</h2>
+                <div class="kanban-controls">
+                    <select id="kanbanProjectFilter" onchange="filterKanban()">
+                        <option value="">Todos os Projetos</option>
                     </select>
-                </div>
-                
-                <div style="margin-left: auto; display: flex; gap: 10px;">
-                    <button class="btn" onclick="loadDailyHistory()">🔄 Atualizar</button>
-                    <button class="btn btn-export" onclick="exportHistoryToCSV()">📥 Exportar Histórico</button>
+                    <button class="btn btn-primary" onclick="openTaskModal()">➕ Nova Tarefa</button>
                 </div>
             </div>
             
-            <div class="table-container">
-                <div id="dailyHistory">
-                    <div style="text-align: center; padding: 40px; color: #6c757d;">
-                        <div class="loading"></div>
-                        <p>Carregando histórico diário...</p>
+            <div class="kanban-board" id="kanbanBoard">
+                <div class="kanban-column" data-status="todo">
+                    <div class="column-header">
+                        <h3>📝 A Fazer</h3>
+                        <span class="task-count" id="todoCount">0</span>
+                    </div>
+                    <div class="column-content" id="todoColumn">
+                        <!-- Tarefas A Fazer -->
+                    </div>
+                </div>
+                
+                <div class="kanban-column" data-status="in-progress">
+                    <div class="column-header">
+                        <h3>🔄 Em Progresso</h3>
+                        <span class="task-count" id="inProgressCount">0</span>
+                    </div>
+                    <div class="column-content" id="inProgressColumn">
+                        <!-- Tarefas Em Progresso -->
+                    </div>
+                </div>
+                
+                <div class="kanban-column" data-status="review">
+                    <div class="column-header">
+                        <h3>👀 Em Revisão</h3>
+                        <span class="task-count" id="reviewCount">0</span>
+                    </div>
+                    <div class="column-content" id="reviewColumn">
+                        <!-- Tarefas Em Revisão -->
+                    </div>
+                </div>
+                
+                <div class="kanban-column" data-status="done">
+                    <div class="column-header">
+                        <h3>✅ Concluído</h3>
+                        <span class="task-count" id="doneCount">0</span>
+                    </div>
+                    <div class="column-content" id="doneColumn">
+                        <!-- Tarefas Concluídas -->
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="relatoriosTab" class="tab-content">
-            <div class="controls">
-                <div>
-                    <label>Período:</label>
-                    <input type="date" id="reportStartDate">
-                    <span>até</span>
-                    <input type="date" id="reportEndDate">
-                </div>
-                
-                <div>
-                    <label>Tipo de Relatório:</label>
-                    <select id="reportType">
-                        <option value="execucoes">Execuções por Período</option>
-                        <option value="pendentes">Itens Pendentes</option>
-                        <option value="frequencia">Por Frequência</option>
+        <!-- Gantt Tab -->
+        <div id="ganttTab" class="tab-content">
+            <div class="section-header">
+                <h2>📈 Gráfico de Gantt</h2>
+                <div class="gantt-controls">
+                    <select id="ganttProjectFilter" onchange="updateGanttChart()">
+                        <option value="">Todos os Projetos</option>
                     </select>
-                </div>
-                
-                <div style="margin-left: auto; display: flex; gap: 10px;">
-                    <button class="btn" onclick="generateReport()">📊 Gerar Relatório</button>
-                    <button class="btn btn-export" onclick="exportReport()">📥 Exportar PDF</button>
+                    <div class="date-range">
+                        <input type="date" id="ganttStartDate" onchange="updateGanttChart()">
+                        <span>até</span>
+                        <input type="date" id="ganttEndDate" onchange="updateGanttChart()">
+                    </div>
                 </div>
             </div>
             
-            <div class="table-container">
-                <div id="reportResults">
-                    <div style="text-align: center; padding: 40px; color: #6c757d;">
-                        <p>Selecione os filtros e clique em "Gerar Relatório"</p>
+            <div class="gantt-container">
+                <div class="gantt-chart" id="ganttChart">
+                    <!-- Gráfico de Gantt será renderizado aqui -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tempo Tab -->
+        <div id="tempoTab" class="tab-content">
+            <div class="section-header">
+                <h2>⏱️ Controle de Tempo</h2>
+                <div class="time-controls">
+                    <div class="active-timer" id="activeTimer" style="display: none;">
+                        <span>⏱️ Trabalhando em: <strong id="currentTask"></strong></span>
+                        <span id="timerDisplay">00:00:00</span>
+                        <button class="btn btn-danger" onclick="stopTimer()">⏹️ Parar</button>
                     </div>
+                </div>
+            </div>
+            
+            <div class="time-tracking-grid">
+                <div class="time-card">
+                    <h3>📊 Resumo Hoje</h3>
+                    <div class="time-stats">
+                        <div class="time-stat">
+                            <span class="time-value" id="todayTotal">0h 0m</span>
+                            <span class="time-label">Total Hoje</span>
+                        </div>
+                        <div class="time-stat">
+                            <span class="time-value" id="todayTasks">0</span>
+                            <span class="time-label">Tarefas</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="time-card">
+                    <h3>📈 Esta Semana</h3>
+                    <div class="time-stats">
+                        <div class="time-stat">
+                            <span class="time-value" id="weekTotal">0h 0m</span>
+                            <span class="time-label">Total Semana</span>
+                        </div>
+                        <div class="time-stat">
+                            <span class="time-value" id="weekAverage">0h 0m</span>
+                            <span class="time-label">Média Diária</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="time-entries">
+                <h3>📝 Registros de Tempo</h3>
+                <div class="time-filters">
+                    <input type="date" id="timeFilterDate" onchange="filterTimeEntries()">
+                    <select id="timeFilterProject" onchange="filterTimeEntries()">
+                        <option value="">Todos os Projetos</option>
+                    </select>
+                </div>
+                <div class="time-entries-list" id="timeEntriesList">
+                    <!-- Registros de tempo serão carregados aqui -->
                 </div>
             </div>
         </div>
@@ -280,107 +371,190 @@
         </div>
     </div>
 
-    <!-- Modal para itens de manutenção -->
-    <div id="itemModal" class="modal">
+    <!-- Modal para Projetos -->
+    <div id="projectModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title" id="modalTitle">Adicionar Item</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <h2 class="modal-title" id="projectModalTitle">Novo Projeto</h2>
+                <button class="close-btn" onclick="closeProjectModal()">&times;</button>
             </div>
-            <form id="itemForm" onsubmit="saveItem(event)">
-                <input type="hidden" id="editIndex" value="">
+            <form id="projectForm" onsubmit="saveProject(event)">
+                <input type="hidden" id="projectId" value="">
+                
                 <div class="form-group">
-                    <label for="itemName">Item / Área:</label>
-                    <input type="text" id="itemName" required>
+                    <label for="projectName">Nome do Projeto:</label>
+                    <input type="text" id="projectName" required placeholder="Digite o nome do projeto">
                 </div>
+                
                 <div class="form-group">
-                    <label for="itemFreq">Frequência:</label>
-                    <select id="itemFreq" required>
-                        <option value="">Selecione</option>
-                        <option value="Diário">Diário</option>
-                        <option value="Semanal">Semanal</option>
-                        <option value="Mensal">Mensal</option>
+                    <label for="projectDescription">Descrição:</label>
+                    <textarea id="projectDescription" placeholder="Descreva o projeto..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="projectStartDate">Data de Início:</label>
+                        <input type="date" id="projectStartDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="projectEndDate">Data de Término:</label>
+                        <input type="date" id="projectEndDate">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="projectManager">Gerente do Projeto:</label>
+                        <select id="projectManager" required>
+                            <option value="">Selecione um gerente</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="projectPriority">Prioridade:</label>
+                        <select id="projectPriority" required>
+                            <option value="baixa">Baixa</option>
+                            <option value="media">Média</option>
+                            <option value="alta">Alta</option>
+                            <option value="critica">Crítica</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="projectTeam">Equipe:</label>
+                    <select id="projectTeam" multiple>
+                        <!-- Membros da equipe serão carregados aqui -->
                     </select>
                 </div>
-                <div class="form-group">
-                    <label for="itemPrio">Prioridade:</label>
-                    <select id="itemPrio" required>
-                        <option value="">Selecione</option>
-                        <option value="Alta">Alta</option>
-                        <option value="Média">Média</option>
-                        <option value="Normal">Normal</option>
-                        <option value="Baixa">Baixa</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="itemStatus">Status:</label>
-                    <select id="itemStatus" required>
-                        <option value="Pendente">Pendente</option>
-                        <option value="Em andamento">Em andamento</option>
-                        <option value="Concluído">Concluído</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="itemResp">Responsável:</label>
-                    <input type="text" id="itemResp">
-                </div>
-                <div class="form-group">
-                    <label for="itemData">Última Revisão:</label>
-                    <input type="date" id="itemData">
-                </div>
-                <div class="form-group">
-                    <label for="itemLastExecution">Última Execução:</label>
-                    <input type="date" id="itemLastExecution">
-                </div>
-                <div class="form-group">
-                    <label for="itemNextExecution">Próxima Prevista:</label>
-                    <input type="date" id="itemNextExecution">
-                </div>
-                <div class="form-group">
-                    <label for="itemObs">Observações:</label>
-                    <textarea id="itemObs"></textarea>
-                </div>
+                
                 <div class="form-actions">
-                    <button type="button" class="btn btn-danger" onclick="closeModal()">Cancelar</button>
-                    <button type="submit" class="btn">Salvar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeProjectModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Projeto</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div id="executionModal" class="modal">
+    <!-- Modal para Tarefas -->
+    <div id="taskModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title">Registrar Execução</h2>
-                <button class="close-btn" onclick="closeExecutionModal()">&times;</button>
+                <h2 class="modal-title" id="taskModalTitle">Nova Tarefa</h2>
+                <button class="close-btn" onclick="closeTaskModal()">&times;</button>
             </div>
-            <form id="executionForm" onsubmit="saveExecution(event)">
-                <input type="hidden" id="executionItemId" value="">
-                <input type="hidden" id="executionItemName" value="">
+            <form id="taskForm" onsubmit="saveTask(event)">
+                <input type="hidden" id="taskId" value="">
                 
                 <div class="form-group">
-                    <label>Item:</label>
-                    <input type="text" id="displayItemName" readonly style="background: #f8f9fa;">
+                    <label for="taskTitle">Título da Tarefa:</label>
+                    <input type="text" id="taskTitle" required placeholder="Digite o título da tarefa">
                 </div>
                 
                 <div class="form-group">
-                    <label for="executionDate">Data da Execução:</label>
-                    <input type="date" id="executionDate" required value="">
+                    <label for="taskDescription">Descrição:</label>
+                    <textarea id="taskDescription" placeholder="Descreva a tarefa..."></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskProject">Projeto:</label>
+                        <select id="taskProject" required>
+                            <option value="">Selecione um projeto</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="taskAssignee">Responsável:</label>
+                        <select id="taskAssignee" required>
+                            <option value="">Selecione um responsável</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskStatus">Status:</label>
+                        <select id="taskStatus" required>
+                            <option value="todo">A Fazer</option>
+                            <option value="in-progress">Em Progresso</option>
+                            <option value="review">Em Revisão</option>
+                            <option value="done">Concluído</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="taskPriority">Prioridade:</label>
+                        <select id="taskPriority" required>
+                            <option value="baixa">Baixa</option>
+                            <option value="media">Média</option>
+                            <option value="alta">Alta</option>
+                            <option value="critica">Crítica</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskStartDate">Data de Início:</label>
+                        <input type="date" id="taskStartDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="taskDueDate">Prazo:</label>
+                        <input type="date" id="taskDueDate">
+                    </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="executionResponsavel">Executado por:</label>
-                    <input type="text" id="executionResponsavel" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="executionObservacoes">Observações da Execução:</label>
-                    <textarea id="executionObservacoes" placeholder="Descreva o que foi feito..."></textarea>
+                    <label for="taskEstimatedHours">Horas Estimadas:</label>
+                    <input type="number" id="taskEstimatedHours" min="0" step="0.5" placeholder="Ex: 8">
                 </div>
                 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-danger" onclick="closeExecutionModal()">Cancelar</button>
-                    <button type="submit" class="btn">Registrar Execução</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Tarefa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Controle de Tempo -->
+    <div id="timeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Registrar Tempo</h2>
+                <button class="close-btn" onclick="closeTimeModal()">&times;</button>
+            </div>
+            <form id="timeForm" onsubmit="saveTimeEntry(event)">
+                <div class="form-group">
+                    <label for="timeTask">Tarefa:</label>
+                    <select id="timeTask" required>
+                        <option value="">Selecione uma tarefa</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="timeDate">Data:</label>
+                        <input type="date" id="timeDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="timeHours">Horas Trabalhadas:</label>
+                        <input type="number" id="timeHours" min="0" step="0.25" required placeholder="Ex: 2.5">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="timeDescription">Descrição do Trabalho:</label>
+                    <textarea id="timeDescription" placeholder="Descreva o que foi feito..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeTimeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar Tempo</button>
                 </div>
             </form>
         </div>
@@ -390,7 +564,12 @@
     <script src="js/firebase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/user-management.js"></script>
-    <script src="js/maintenance.js"></script>
+    <script src="js/projects.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/kanban.js"></script>
+    <script src="js/gantt.js"></script>
+    <script src="js/time-tracking.js"></script>
+    <script src="js/dashboard.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

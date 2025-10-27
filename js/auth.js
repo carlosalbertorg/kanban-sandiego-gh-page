@@ -1,6 +1,6 @@
 // Sistema de autenticação e permissões
-let currentUser = null;
-let userRole = 'user';
+var currentUser = window.currentUser ?? null;
+var userRole = window.userRole ?? 'user';
 
 // Sistema de permissões
 const permissions = {
@@ -38,10 +38,14 @@ function checkPermission(action) {
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
+        window.currentUser = currentUser; // garante referência global única
         await loadUserRole();
+        window.userRole = userRole;
         showMainApp();
         initializeApp();
     } else {
+        currentUser = null;
+        window.currentUser = null;
         showLoginScreen();
     }
 });
@@ -93,8 +97,12 @@ async function login(event) {
 async function logout() {
     try {
         await auth.signOut();
+        currentUser = null;
+        window.currentUser = null;
+        console.log('Logout realizado com sucesso');
+        showLoginScreen();
     } catch (error) {
-        console.error('Erro ao fazer logout:', error);
+        alert('Erro ao sair: ' + getAuthErrorMessage(error));
     }
 }
 
