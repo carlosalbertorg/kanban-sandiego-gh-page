@@ -5,42 +5,44 @@ function switchTab(tabName) {
     document.getElementById(tabName + 'Tab').classList.add('active');
     document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
     
-    if (tabName === 'historico') {
-        loadDailyHistory();
-    } else if (tabName === 'relatorios') {
-        const today = new Date().toISOString().split('T')[0];
-        const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-        document.getElementById('reportStartDate').value = firstDay;
-        document.getElementById('reportEndDate').value = today;
+    // Initialize specific modules when their tabs are activated
+    if (tabName === 'dashboard') {
+        initializeDashboard();
+    } else if (tabName === 'projetos') {
+        initializeProjects();
+    } else if (tabName === 'tarefas') {
+        initializeTasks();
+    } else if (tabName === 'kanban') {
+        initializeKanban();
+    } else if (tabName === 'gantt') {
+        initializeGantt();
+    } else if (tabName === 'tempo') {
+        initializeTimeTracking();
     }
 }
 
 async function initializeApp() {
     try {
-        await initializeFirebaseData();
-        listenToChanges();
-        listenToExecutionHistory();
-        listenToUsers();
-        document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+        // Initialize project management data
+        initializeProjects();
+        initializeTasks();
+        initializeDashboard();
+        
+        console.log('Sistema de Gerenciamento de Projetos - Inicializado');
     } catch (error) {
         console.error('Erro ao inicializar aplicação:', error);
-        updateConnectionStatus(false);
-        maintenanceData = initialMaintenanceData.map((item, index) => ({
-            id: 'local-' + index,
-            ...item
-        }));
-        renderTable();
     }
 }
 
 // Fechar modais ao clicar fora
 window.onclick = function(event) {
-    const modals = ['itemModal', 'executionModal', 'userManagementModal', 'addUserModal'];
+    const modals = ['projectModal', 'taskModal', 'timeModal', 'userManagementModal', 'addUserModal'];
     modals.forEach(modalId => {
         const modal = document.getElementById(modalId);
         if (event.target === modal) {
-            if (modalId === 'itemModal') closeModal();
-            if (modalId === 'executionModal') closeExecutionModal();
+            if (modalId === 'projectModal') closeProjectModal();
+            if (modalId === 'taskModal') closeTaskModal();
+            if (modalId === 'timeModal') closeTimeModal();
             if (modalId === 'userManagementModal') closeUserManagementModal();
             if (modalId === 'addUserModal') closeAddUserModal();
         }
@@ -49,5 +51,6 @@ window.onclick = function(event) {
 
 // Inicializar a aplicação quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Sistema de Manutenção - Carregado');
+    console.log('Sistema de Gerenciamento de Projetos - Carregado');
+    initializeApp();
 });
