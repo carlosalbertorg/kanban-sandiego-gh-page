@@ -189,51 +189,8 @@ function closeTaskModal() {
     document.getElementById('taskModal').style.display = 'none';
 }
 
-function saveTask(event) {
-    event.preventDefault();
-    
-    const taskId = document.getElementById('taskId').value;
-    const taskData = {
-        title: document.getElementById('taskTitle').value,
-        description: document.getElementById('taskDescription').value,
-        projectId: document.getElementById('taskProject').value,
-        assignee: document.getElementById('taskAssignee').value,
-        status: document.getElementById('taskStatus').value,
-        priority: document.getElementById('taskPriority').value,
-        startDate: document.getElementById('taskStartDate').value,
-        dueDate: document.getElementById('taskDueDate').value,
-        estimatedHours: parseFloat(document.getElementById('taskEstimatedHours').value) || 0,
-        actualHours: 0,
-        progress: document.getElementById('taskStatus').value === 'done' ? 100 : 0
-    };
-    
-    if (taskId) {
-        // Editar tarefa existente
-        const taskIndex = tasks.findIndex(t => t.id === taskId);
-        if (taskIndex !== -1) {
-            tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
-        }
-    } else {
-        // Criar nova tarefa
-        const newTask = {
-            id: 'task-' + Date.now(),
-            ...taskData,
-            createdAt: new Date().toISOString()
-        };
-        tasks.push(newTask);
-    }
-    
-    saveTasks();
-    renderTasks();
-    closeTaskModal();
-    
-    // Atualizar outras visualizações
-    if (typeof renderKanban === 'function') {
-        renderKanban();
-    }
-    if (typeof updateDashboard === 'function') {
-        updateDashboard();
-    }
+function saveTaskForm(event) {
+    return saveTask(event);
 }
 
 function editTask(taskId) {
