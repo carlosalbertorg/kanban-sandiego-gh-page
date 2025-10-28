@@ -1,53 +1,145 @@
 // Gerenciamento de Projetos
 let projects = [];
 
-function initializeProjects() {
-    loadProjects();
+async function initializeProjects() {
+    await loadProjects();
+}
+
+async function loadProjects() {
+    const dbService = window.db;
+    if (!dbService) {
+        console.warn('Firebase não inicializado. Carregando dados de exemplo...');
+        loadSampleProjects();
+        return;
+    }
+
+    try {
+        const snapshot = await dbService.collection('projects').get();
+        projects = [];
+        
+        if (snapshot.empty) {
+            console.log('Nenhum projeto encontrado. Carregando dados de exemplo...');
+            await initializeSampleProjects();
+        } else {
+            snapshot.forEach(doc => {
+                projects.push({ id: doc.id, ...doc.data() });
+            });
+        }
+        
+        renderProjects();
+        populateProjectSelects();
+    } catch (error) {
+        console.error('Erro ao carregar projetos:', error);
+        loadSampleProjects();
+    }
+}
+
+function loadSampleProjects() {
+    // Dados de exemplo para quando Firebase não estiver disponível
+    projects = [
+        {
+            id: 'proj-1',
+            name: 'Website Redesign',
+            description: 'Redesign completo do website corporativo',
+            startDate: '2024-01-15',
+            endDate: '2024-03-15',
+            manager: 'admin@example.com',
+            priority: 'alta',
+            status: 'ativo',
+            team: ['admin@example.com', 'user@example.com'],
+            progress: 65,
+            createdAt: new Date().toISOString()
+        },
+        {
+            id: 'proj-2',
+            name: 'Sistema de CRM',
+            description: 'Desenvolvimento de sistema de gestão de clientes',
+            startDate: '2024-02-01',
+            endDate: '2024-05-01',
+            manager: 'admin@example.com',
+            priority: 'critica',
+            status: 'ativo',
+            team: ['admin@example.com'],
+            progress: 30,
+            createdAt: new Date().toISOString()
+        }
+    ];
     renderProjects();
     populateProjectSelects();
 }
 
-function loadProjects() {
-    // Carregar projetos do localStorage ou Firebase
-    const savedProjects = localStorage.getItem('projects');
-    if (savedProjects) {
-        projects = JSON.parse(savedProjects);
-    } else {
-        // Dados de exemplo
-        projects = [
-            {
-                id: 'proj-1',
-                name: 'Website Redesign',
-                description: 'Redesign completo do website corporativo',
-                startDate: '2024-01-15',
-                endDate: '2024-03-15',
-                manager: 'admin@example.com',
-                priority: 'alta',
-                status: 'ativo',
-                team: ['admin@example.com', 'user@example.com'],
-                progress: 65,
-                createdAt: new Date().toISOString()
-            },
-            {
-                id: 'proj-2',
-                name: 'Sistema de CRM',
-                description: 'Desenvolvimento de sistema de gestão de clientes',
-                startDate: '2024-02-01',
-                endDate: '2024-05-01',
-                manager: 'admin@example.com',
-                priority: 'critica',
-                status: 'ativo',
-                team: ['admin@example.com'],
-                progress: 30,
-                createdAt: new Date().toISOString()
-            }
-        ];
-        saveProjects();
+async function initializeSampleProjects() {
+    const dbService = window.db;
+    if (!dbService) return;
+
+    const sampleProjects = [
+        {
+            name: 'Website Redesign',
+            description: 'Redesign completo do website corporativo',
+            startDate: '2024-01-15',
+            endDate: '2024-03-15',
+            manager: window.currentUser?.email || 'admin@example.com',
+            priority: 'alta',
+            status: 'ativo',
+            team: [window.currentUser?.email || 'admin@example.com'],
+            progress: 65,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        },
+        {
+            name: 'Sistema de CRM',
+            description: 'Desenvolvimento de sistema de gestão de clientes',
+            startDate: '2024-02-01',
+            endDate: '2024-05-01',
+            manager: window.currentUser?.email || 'admin@example.com',
+            priority: 'critica',
+            status: 'ativo',
+            team: [window.currentUser?.email || 'admin@example.com'],
+            progress: 30,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }
+    ];
+
+    try {
+        for (const project of sampleProjects) {
+            const docRef = await dbService.collection('projects').add(project);
+            projects.push({ id: docRef.id, ...project });
+        }
+        console.log('Projetos de exemplo criados no Firebase');
+    } catch (error) {
+        console.error('Erro ao criar projetos de exemplo:', error);
+        loadSampleProjects();
     }
 }
 
-function saveProjects() {
-    localStorage.setItem('projects', JSON.stringify(projects));
+async function saveProject(projectData) {
+    const dbService = window.db;
+    if (!dbService) {
+        console.warn('Firebase não disponível. Salvando localmente...');
+        localStorage.setItem('projects', JSON.stringify(projects));
+        return;
+    }
+
+    try {
+        if (projectData.id) {
+            // Atualizar projeto existente
+            await dbService.collection('projects').doc(projectData.id).update({
+                ...projectData,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            // Criar novo projeto
+            const docRef = await dbService.collection('projects').add({
+                ...projectData,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            projectData.id = docRef.id;
+        }
+        
+        await loadProjects(); // Recarregar lista
+    } catch (error) {
+        console.error('Erro ao salvar projeto:', error);
+        throw error;
+    }
 }
 
 function renderProjects() {
@@ -116,7 +208,7 @@ function closeProjectModal() {
     document.getElementById('projectModal').style.display = 'none';
 }
 
-function saveProject(event) {
+async function saveProjectForm(event) {
     event.preventDefault();
     
     const projectId = document.getElementById('projectId').value;
@@ -133,29 +225,19 @@ function saveProject(event) {
     };
     
     if (projectId) {
-        // Editar projeto existente
-        const projectIndex = projects.findIndex(p => p.id === projectId);
-        if (projectIndex !== -1) {
-            projects[projectIndex] = { ...projects[projectIndex], ...projectData };
-        }
-    } else {
-        // Criar novo projeto
-        const newProject = {
-            id: 'proj-' + Date.now(),
-            ...projectData,
-            createdAt: new Date().toISOString()
-        };
-        projects.push(newProject);
+        projectData.id = projectId;
     }
     
-    saveProjects();
-    renderProjects();
-    populateProjectSelects();
-    closeProjectModal();
-    
-    // Atualizar dashboard
-    if (typeof updateDashboard === 'function') {
-        updateDashboard();
+    try {
+        await saveProject(projectData);
+        closeProjectModal();
+        
+        // Atualizar dashboard
+        if (typeof updateDashboard === 'function') {
+            updateDashboard();
+        }
+    } catch (error) {
+        alert('Erro ao salvar projeto: ' + error.message);
     }
 }
 
@@ -163,16 +245,23 @@ function editProject(projectId) {
     openProjectModal(projectId);
 }
 
-function deleteProject(projectId) {
+async function deleteProject(projectId) {
     if (confirm('Tem certeza que deseja excluir este projeto?')) {
-        projects = projects.filter(p => p.id !== projectId);
-        saveProjects();
-        renderProjects();
-        populateProjectSelects();
-        
-        // Atualizar dashboard
-        if (typeof updateDashboard === 'function') {
-            updateDashboard();
+        const dbService = window.db;
+        try {
+            if (dbService) {
+                await dbService.collection('projects').doc(projectId).delete();
+            }
+            projects = projects.filter(p => p.id !== projectId);
+            renderProjects();
+            populateProjectSelects();
+            if (typeof updateDashboard === 'function') {
+                updateDashboard();
+            }
+            console.log('Projeto excluído com sucesso!');
+        } catch (error) {
+            console.error('Erro ao excluir projeto:', error);
+            alert('Erro ao excluir projeto. Tente novamente.');
         }
     }
 }
@@ -236,18 +325,32 @@ function getProjectById(projectId) {
     return projects.find(p => p.id === projectId);
 }
 
-function updateProjectProgress(projectId) {
+async function updateProjectProgress(projectId) {
     const project = getProjectById(projectId);
     if (!project) return;
-    
-    // Calcular progresso baseado nas tarefas
+
     if (typeof tasks !== 'undefined') {
         const projectTasks = tasks.filter(t => t.projectId === projectId);
         if (projectTasks.length > 0) {
             const completedTasks = projectTasks.filter(t => t.status === 'done').length;
             project.progress = Math.round((completedTasks / projectTasks.length) * 100);
-            saveProjects();
-            renderProjects();
         }
     }
+
+    try {
+        const dbService = window.db;
+        if (dbService && project.id && !project.id.startsWith('proj-')) {
+            await dbService.collection('projects').doc(project.id).update({
+                progress: project.progress,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            await saveProject(project);
+        }
+        renderProjects();
+    } catch (error) {
+        console.error('Erro ao atualizar progresso do projeto:', error);
+    }
+    saveProjects();
+    renderProjects();
 }
