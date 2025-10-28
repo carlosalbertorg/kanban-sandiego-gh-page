@@ -24,9 +24,19 @@ try {
         console.log('Firebase já inicializado.');
     }
 
-    // Garante serviços globais
+    // Serviços globais
     window.db = firebase.firestore();
     window.auth = firebase.auth();
+
+    // Marca conexão como online no UI
+    const statusElement = document.getElementById('connectionStatus');
+    const loadingElement = document.getElementById('loadingIndicator');
+    if (statusElement) {
+        statusElement.classList.remove('status-offline');
+        statusElement.classList.add('status-online');
+        if (loadingElement) loadingElement.style.display = 'none';
+        statusElement.textContent = 'Conectado ao banco de dados';
+    }
 } catch (error) {
     console.error('Erro ao inicializar Firebase:', error);
 }
