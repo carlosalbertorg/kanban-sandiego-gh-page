@@ -42,11 +42,11 @@ const initialMaintenanceData = [
 
 async function initializeFirebaseData() {
     try {
-        const snapshot = await db.collection('maintenance').get();
+        const snapshot = await dbService.collection('maintenance').get();
         if (snapshot.empty) {
             console.log('Inicializando dados no Firebase...');
             for (const item of initialMaintenanceData) {
-                await db.collection('maintenance').add({
+                await dbService.collection('maintenance').add({
                     ...item,
                     order: initialMaintenanceData.indexOf(item),
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -61,7 +61,13 @@ async function initializeFirebaseData() {
 }
 
 function listenToChanges() {
-    unsubscribe = db.collection('maintenance').orderBy('order', 'asc').onSnapshot((snapshot) => {
+    const dbService = window.db;
+    if (!dbService) {
+        console.warn('DB não inicializado — não foi possível escutar manutenção.');
+        updateConnectionStatus(false);
+        return;
+    }
+    unsubscribe = dbService.collection('maintenance').orderBy('order', 'asc').onSnapshot((snapshot) => {
         maintenanceData = [];
         snapshot.forEach((doc) => {
             maintenanceData.push({ id: doc.id, ...doc.data() });
@@ -76,7 +82,9 @@ function listenToChanges() {
 }
 
 function listenToExecutionHistory() {
-    unsubscribeHistory = db.collection('executions').onSnapshot((snapshot) => {
+    const dbService = window.db;
+    if (!dbService) return;
+    unsubscribeHistory = dbService.collection('executions').onSnapshot((snapshot) => {
         executionHistory = [];
         snapshot.forEach((doc) => {
             executionHistory.push({ id: doc.id, ...doc.data() });
@@ -92,8 +100,17 @@ async function addItem(item) {
         alert('Você não tem permissão para adicionar itens');
         return;
     }
+    const dbService = window.db;
+    if (!checkPermission('canAdd')) {
+        alert('Você não tem permissão para adicionar itens');
+        return;
+    }
+    if (!dbService) {
+        alert('Banco de dados não inicializado.');
+        return;
+    }
     try {
-        const docRef = await db.collection('maintenance').add({
+        const docRef = await dbService.collection('maintenance').add({
             ...item,
             order: maintenanceData.length,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -111,8 +128,17 @@ async function updateItem(id, updates) {
         alert('Você não tem permissão para editar itens');
         return;
     }
+    const dbService = window.db;
+    if (!checkPermission('canEdit')) {
+        alert('Você não tem permissão para editar itens');
+        return;
+    }
+    if (!dbService) {
+        alert('Banco de dados não inicializado.');
+        return;
+    }
     try {
-        await db.collection('maintenance').doc(id).update({
+        await dbService.collection('maintenance').doc(id).update({
             ...updates,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedBy: currentUser.email
@@ -128,8 +154,17 @@ async function deleteItem(id) {
         alert('Você não tem permissão para excluir itens');
         return;
     }
+    const dbService = window.db;
+    if (!checkPermission('canDelete')) {
+        alert('Você não tem permissão para excluir itens');
+        return;
+    }
+    if (!dbService) {
+        alert('Banco de dados não inicializado.');
+        return;
+    }
     try {
-        await db.collection('maintenance').doc(id).delete();
+        await dbService.collection('maintenance').doc(id).delete();
     } catch (error) {
         console.error('Erro ao excluir item:', error);
         throw error;
@@ -138,12 +173,12 @@ async function deleteItem(id) {
 
 async function addExecution(execution) {
     try {
-        const docRef = await db.collection('executions').add({
+        const docRef = await dbService.collection('executions').add({
             ...execution,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             createdBy: currentUser.email
         });
-        await db.collection('maintenance').doc(execution.itemId).update({
+        await dbService.collection('maintenance').doc(execution.itemId).update({
             lastExecution: execution.executionDate,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
