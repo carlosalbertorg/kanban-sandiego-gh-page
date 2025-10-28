@@ -148,29 +148,39 @@ function showMainApp() {
 function showLoginScreen() {
     document.getElementById('loginContainer').style.display = 'flex';
     document.getElementById('mainContainer').style.display = 'none';
+
+    // Limpa dados locais
     maintenanceData = [];
     executionHistory = [];
     users = [];
-    if (unsubscribe) unsubscribe();
-    if (unsubscribeHistory) unsubscribeHistory();
-    if (unsubscribeUsers) unsubscribeUsers();
+
+    // Blindagem: desinscrever listeners se existirem
+    try {
+        const unsub = window.unsubscribe;
+        const unsubHistory = window.unsubscribeHistory;
+        const unsubUsers = window.unsubscribeUsers;
+
+        if (typeof unsub === 'function') unsub();
+        if (typeof unsubHistory === 'function') unsubHistory();
+        if (typeof unsubUsers === 'function') unsubUsers();
+    } catch (e) {
+        console.warn('Falha ao limpar subscriptions:', e);
+    }
 }
 
 function updatePermissions() {
     const addButton = document.getElementById('addButton');
     const actionButtons = document.querySelectorAll('.action-buttons');
-    
-    if (checkPermission('canAdd')) {
-        addButton.style.display = 'block';
-    } else {
-        addButton.style.display = 'none';
+
+    // Só altera se o elemento existir
+    if (addButton) {
+        addButton.style.display = checkPermission('canAdd') ? 'block' : 'none';
     }
-    
-    // Mostrar/ocultar botões de ação baseado nas permissões
-    actionButtons.forEach(buttonGroup => {
-        if (!checkPermission('canEdit') && !checkPermission('canDelete')) {
-            buttonGroup.style.display = 'none';
-        }
+
+    // Mostra/oculta grupos de ação conforme permissões
+    actionButtons.forEach(group => {
+        const canShow = checkPermission('canEdit') || checkPermission('canDelete');
+        group.style.display = canShow ? 'flex' : 'none';
     });
 }
 
