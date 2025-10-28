@@ -36,16 +36,19 @@ function checkPermission(action) {
 
 // Observador de estado de autenticação (com guard e retry)
 function attachAuthListener() {
-    if (!window.auth) {
+    const authService = window.auth;
+    if (!authService) {
         console.warn('Firebase Auth não inicializado. Aguardando...');
         return false;
     }
-    auth.onAuthStateChanged(async (user) => {
+    authService.onAuthStateChanged(async (user) => {
         if (user) {
             currentUser = user;
             window.currentUser = currentUser;
+
             await loadUserRole();
             window.userRole = userRole;
+
             showMainApp();
             initializeApp();
         } else {
@@ -64,26 +67,24 @@ if (!attachAuthListener()) {
 
 async function loadUserRole() {
     try {
-        const userDoc = await db.collection('users').doc(currentUser.email).get();
-        if (userDoc.exists) {
-            const userData = userDoc.data();
+        const dbService = window.db;
+        if (!dbService || !currentUser?.email) return;
+
+        const userDoc = await dbService.collection('users').doc(currentUser.email).get();
+        const userData = userDoc.data();
+
+        if (userData?.role) {
             userRole = userData.role;
-            if (!userData.isActive) {
-                alert('Sua conta está desativada. Entre em contato com o administrador.');
-                await logout();
-                return;
-            }
         } else {
-            // Se não existe, criar como usuário comum
             userRole = 'user';
-            await db.collection('users').doc(currentUser.email).set({
+            await dbService.collection('users').doc(currentUser.email).set({
                 email: currentUser.email,
-                name: currentUser.email.split('@')[0],
+                name: currentUser.displayName || currentUser.email.split('@')[0],
                 role: 'user',
                 isActive: true,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 createdBy: 'system'
-            });
+            }, { merge: true });
         }
     } catch (error) {
         console.error('Erro ao carregar role do usuário:', error);
@@ -97,7 +98,8 @@ async function login(event) {
     const password = document.getElementById('loginPassword').value;
     const errorElement = document.getElementById('loginError');
 
-    if (!window.auth) {
+    const authService = window.auth;
+    if (!authService) {
         errorElement.textContent = 'Serviço de autenticação não inicializado. Aguarde alguns segundos e tente novamente.';
         errorElement.style.display = 'block';
         return;
@@ -105,7 +107,7 @@ async function login(event) {
 
     try {
         errorElement.style.display = 'none';
-        await auth.signInWithEmailAndPassword(email, password);
+        await authService.signInWithEmailAndPassword(email, password);
     } catch (error) {
         errorElement.textContent = getAuthErrorMessage(error);
         errorElement.style.display = 'block';
@@ -114,7 +116,12 @@ async function login(event) {
 
 async function logout() {
     try {
-        await auth.signOut();
+        const authService = window.auth;
+        if (!authService) {
+            alert('Serviço de autenticação não inicializado.');
+            return;
+        }
+        await authService.signOut();
         currentUser = null;
         window.currentUser = null;
         console.log('Logout realizado com sucesso');
