@@ -34,21 +34,33 @@ function checkPermission(action) {
     return permissions[userRole] && permissions[userRole][action];
 }
 
-// Observador de estado de autenticação
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        currentUser = user;
-        window.currentUser = currentUser; // garante referência global única
-        await loadUserRole();
-        window.userRole = userRole;
-        showMainApp();
-        initializeApp();
-    } else {
-        currentUser = null;
-        window.currentUser = null;
-        showLoginScreen();
+// Observador de estado de autenticação (com guard e retry)
+function attachAuthListener() {
+    if (!window.auth) {
+        console.warn('Firebase Auth não inicializado. Aguardando...');
+        return false;
     }
-});
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUser = user;
+            window.currentUser = currentUser;
+            await loadUserRole();
+            window.userRole = userRole;
+            showMainApp();
+            initializeApp();
+        } else {
+            currentUser = null;
+            window.currentUser = null;
+            showLoginScreen();
+        }
+    });
+    return true;
+}
+if (!attachAuthListener()) {
+    const retry = setInterval(() => {
+        if (attachAuthListener()) clearInterval(retry);
+    }, 200);
+}
 
 async function loadUserRole() {
     try {
@@ -84,7 +96,13 @@ async function login(event) {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const errorElement = document.getElementById('loginError');
-    
+
+    if (!window.auth) {
+        errorElement.textContent = 'Serviço de autenticação não inicializado. Aguarde alguns segundos e tente novamente.';
+        errorElement.style.display = 'block';
+        return;
+    }
+
     try {
         errorElement.style.display = 'none';
         await auth.signInWithEmailAndPassword(email, password);
