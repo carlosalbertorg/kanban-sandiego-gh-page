@@ -51,67 +51,47 @@ async function saveUser(event) {
     const userPassword = document.getElementById('addUserPassword').value;
     const editUserId = document.getElementById('editUserId').value;
 
-    // Validação básica
-    if (!userEmail) {
-        alert('Por favor, preencha o email.');
-        return;
-    }
+    const authService = window.auth;
+    const dbService = window.db;
 
-    if (!validateEmail(userEmail)) {
-        alert('Por favor, informe um email válido.');
+    if (!dbService) {
+        alert('Banco de dados não inicializado.');
         return;
     }
 
     try {
+        if (!validateEmail(userEmail)) {
+            alert('Email inválido');
+            return;
+        }
+
         if (editUserId) {
-            // Editar usuário existente
-            await db.collection('users').doc(editUserId).update({
+            await dbService.collection('users').doc(editUserId).update({
                 name: userName,
-                role: userRole,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedBy: currentUser.email
+                role: userRole
             });
-            alert('✅ Usuário atualizado com sucesso!');
         } else {
-            // Criar novo usuário
-            if (!userPassword) {
-                alert('Por favor, informe uma senha para o novo usuário');
+            if (!authService) {
+                alert('Serviço de autenticação não inicializado.');
                 return;
             }
-
-            // Criar usuário no Authentication
-            const userCredential = await auth.createUserWithEmailAndPassword(userEmail, userPassword);
-            
-            // Adicionar dados no Firestore
-            await db.collection('users').doc(userEmail).set({
+            const userCredential = await authService.createUserWithEmailAndPassword(userEmail, userPassword);
+            await dbService.collection('users').doc(userEmail).set({
                 email: userEmail,
                 name: userName,
                 role: userRole,
                 isActive: true,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                createdBy: currentUser.email
+                createdBy: currentUser?.email || 'system'
             });
-            
-            alert('✅ Usuário criado com sucesso!');
         }
-        
+
         closeAddUserModal();
-        loadUserManagement();
+        await loadUserManagement();
+        window.users = users;
     } catch (error) {
-        console.error('Erro ao salvar usuário:', error);
         let message = 'Erro ao salvar usuário.';
-
-        if (error.code === 'auth/email-already-in-use') {
-            message = '❌ Este email já está em uso.';
-        } else if (error.code === 'auth/invalid-email') {
-            message = '❌ Email inválido.';
-        } else if (error.code === 'auth/weak-password') {
-            message = '❌ A senha deve ter pelo menos 6 caracteres.';
-        } else if (error.code === 'auth/missing-email') {
-            message = '❌ Email não informado.';
-        }
-
-        alert(message);
+        alert(message + '\n' + (error?.message || ''));
     }
 }
 
@@ -207,15 +187,14 @@ async function updateUserRole(userEmail, newRole) {
 }
 
 function listenToUsers() {
-    unsubscribeUsers = db.collection('users').onSnapshot(async (snapshot) => {
+    const dbService = window.db;
+    if (!dbService) return;
+
+    unsubscribeUsers = dbService.collection('users').onSnapshot(async (snapshot) => {
         users = [];
-        snapshot.forEach((doc) => {
-            users.push({ id: doc.id, ...doc.data() });
-        });
-        // Garanta que a referência global seja atualizada
+        snapshot.forEach(doc => users.push(doc.data()));
         window.users = users;
-    }, (error) => {
-        console.error('Erro ao escutar usuários:', error);
-        window.unsubscribeUsers = unsubscribeUsers;
+        displayUserManagement();
     });
+    window.unsubscribeUsers = unsubscribeUsers;
 }
