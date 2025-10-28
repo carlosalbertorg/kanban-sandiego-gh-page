@@ -7,6 +7,7 @@ function openUserManagement() {
         alert('Apenas administradores podem gerenciar usuários');
         return;
     }
+    listenToUsers(); // garante atualização em tempo real
     loadUserManagement();
     document.getElementById('userManagementModal').style.display = 'flex';
 }
@@ -106,9 +107,15 @@ async function toggleUserStatus(userEmail, currentStatus) {
         return;
     }
 
+    const dbService = window.db;
+    if (!dbService) {
+        alert('Banco de dados não inicializado.');
+        return;
+    }
+
     if (confirm(`Tem certeza que deseja ${currentStatus ? 'desativar' : 'ativar'} este usuário?`)) {
         try {
-            await db.collection('users').doc(userEmail).update({
+            await dbService.collection('users').doc(userEmail).update({
                 isActive: !currentStatus,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedBy: currentUser.email
@@ -121,13 +128,19 @@ async function toggleUserStatus(userEmail, currentStatus) {
 }
 
 async function loadUserManagement() {
+    const dbService = window.db;
+    if (!dbService) {
+        console.warn('Banco de dados não inicializado. Abrindo lista vazia.');
+        users = [];
+        displayUserManagement();
+        return;
+    }
     try {
-        const snapshot = await db.collection('users').get();
+        const snapshot = await dbService.collection('users').get();
         users = [];
         snapshot.forEach(doc => {
             users.push({ id: doc.id, ...doc.data() });
         });
-        
         displayUserManagement();
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
@@ -175,8 +188,14 @@ async function updateUserRole(userEmail, newRole) {
         return;
     }
 
+    const dbService = window.db;
+    if (!dbService) {
+        alert('Banco de dados não inicializado.');
+        return;
+    }
+
     try {
-        await db.collection('users').doc(userEmail).update({
+        await dbService.collection('users').doc(userEmail).update({
             role: newRole,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedBy: currentUser.email
