@@ -12,19 +12,20 @@ window.firebaseConfig = window.firebaseConfig || {
 let app, db, auth;
 
 try {
-    // Evita re-inicialização do Firebase e redeclarações globais
+    // Inicializa o app apenas se ainda não existir
     if (!window.app) {
         if (!firebase.apps.length) {
             window.app = firebase.initializeApp(window.firebaseConfig);
         } else {
             window.app = firebase.app();
         }
-        window.db = firebase.firestore();
-        window.auth = firebase.auth();
         console.log('Firebase inicializado com sucesso!');
     } else {
         console.log('Firebase já inicializado.');
     }
+    // Garante que db e auth sempre estejam definidos
+    window.db = firebase.firestore();
+    window.auth = firebase.auth();
 } catch (error) {
     console.error('Erro ao inicializar Firebase:', error);
 }
